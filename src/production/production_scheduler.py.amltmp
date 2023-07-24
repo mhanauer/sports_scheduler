@@ -1,16 +1,17 @@
 import streamlit as st
+import pandas as pd
 import itertools
 import random
 from datetime import datetime, timedelta
+import holidays
 
 def generate_dates(start_date, end_date, day_of_week):
+    us_holidays = holidays.US(years=[start_date.year, end_date.year])
     dates = []
-    start_date = datetime.strptime(start_date, "%Y-%m-%d")
-    end_date = datetime.strptime(end_date, "%Y-%m-%d")
     total_days = (end_date - start_date).days + 1
     for day_number in range(total_days):
         current_day = start_date + timedelta(days=day_number)
-        if current_day.weekday() == day_of_week:
+        if current_day.weekday() == day_of_week and current_day not in us_holidays:
             dates.append(current_day)
     return dates
 
@@ -66,38 +67,41 @@ def schedule_matches(leagues, league_days, court_details, start_date, end_date, 
 
     return matches
 
-st.title('Tennis Match Scheduler')
+def main():
+    st.title("Tennis Match Scheduler")
 
-# User input for leagues and league days
-leagues = {
-    "Men's 4.0 Singles": st.text_input("Enter Men's 4.0 Singles Teams (comma-separated):").split(','),
-    "Women's 4.0 Singles": st.text_input("Enter Women's 4.0 Singles Teams (comma-separated):").split(',')
-}
-league_days = {
-    "Men's 4.0 Singles": [1, 3], # Tuesday, Thursday
-    "Women's 4.0 Singles": [5, 6] # Saturday, Sunday
-}
+    start_date = st.date_input("Start Date", datetime(2023, 8, 1))
+    end_date = st.date_input("End Date", datetime(2023, 9, 30))
+    matches_per_team = st.number_input("Matches Per Team", min_value=1, value=6)
+    court_type = st.selectbox("Court Type", options=[3,5])
 
-# User input for court details, dates, and times
-start_date = st.date_input('Start Date')
-end_date = st.date_input('End Date')
-weekday_times = ["6:30 PM", "8:00 PM"]
-weekend_times = ["9:00 AM", "11:00 AM"]
-matches_per_team = st.number_input('Matches Per Team', min_value=1)
-court_type = st.selectbox('Court Type', [3, 5])
+    weekday_times = ["6:30 PM", "8:00 PM"]
+    weekend_times = ["9:00 AM", "11:00 AM"]
 
-# Initialize court details
-court_details = {
-    'Elmira': [1,2,3,4,5,6],
-    'Southern boundaries': [3,4,5,6,7,8],
-    'Whipoorwill': [6,7,8,9,10,11],
-    'Garrett': [1,2,3,4,5,6],
-    'Rock Quarry': [1,2,3,4,5,6]
-}
+    leagues = {
+        "Men's 4.0 Singles": ["Team A", "Team B", "Team C", "Team D"],
+        "Women's 4.0 Singles": ["Team E", "Team F", "Team G", "Team H"]
+    }
 
-if st.button('Generate Schedule'):
-    matches = schedule_matches(leagues, league_days, court_details, start_date.strftime('%Y-%m-%d'), end_date.strftime('%Y-%m-%d'), weekday_times, weekend_times, matches_per_team, court_type)
+    league_days = {
+        "Men's 4.0 Singles": [1, 3], # Tuesday, Thursday
+        "Women's 4.0 Singles": [5, 6] # Saturday, Sunday
+    }
+
+    court_details = {
+        'Elmira': [1,2,3,4,5,6],
+        'Southern boundaries': [3,4,5,6,7,8],
+        'Whipoorwill': [6,7,8,9,10,11],
+        'Garrett': [1,2,3,4,5,6],
+        'Rock Quarry': [1,2,3,4,5,6]
+    }
+
+    matches = schedule_matches(leagues, league_days, court_details, start_date, end_date, weekday_times, weekend_times, matches_per_team, court_type)
+
     for league, matches_in_league in matches.items():
         st.subheader(f"{league} Matches:")
         for match in matches_in_league:
             st.text(f"{match['team1']} vs {match['team2']} at {match['court_location']} Courts {', '.join(str(x) for x in match['court_numbers'])} on {match['date_time'].strftime('%Y-%m-%d %I:%M %p')}")
+
+if __name__ == "__main__":
+    main()
